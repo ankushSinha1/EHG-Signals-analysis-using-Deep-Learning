@@ -6,6 +6,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
 import tensorflow as tf
 from tensorflow.keras import layers, models
+from tensorflow.keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 
 def preprocess_signal(signal_data, fs):
@@ -101,7 +102,10 @@ X_test_scaled = scaler.transform(X_test)
 # Build the deep learning model
 model = models.Sequential([
     layers.Input(shape=X_train_scaled.shape[1]),
+    layers.Dense(128, activation='relu'),
+    layers.Dropout(0.5),
     layers.Dense(64, activation='relu'),
+    layers.Dropout(0.5),
     layers.Dense(32, activation='relu'),
     layers.Dense(3, activation='softmax')
 ])
@@ -111,8 +115,10 @@ model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
+
 # Train the model and store the training history
 history = model.fit(X_train_scaled, y_train, epochs=10, batch_size=32, verbose=1, validation_split=0.2)
+
 
 # Evaluate the model
 loss, accuracy = model.evaluate(X_test_scaled, y_test)
