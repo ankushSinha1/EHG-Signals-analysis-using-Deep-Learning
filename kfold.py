@@ -1,6 +1,7 @@
 import wfdb
 import numpy as np
 from scipy import signal
+from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
@@ -88,17 +89,23 @@ def create_model():
     return model
 
 # Define the number of folds for cross-validation
-n_splits = 5
+n_splits = 10
 kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
 
 # Lists to store accuracy scores for each fold
 accuracy_scores = []
+best_model = None
+best_accuracy = 0.0
+best_history = None
 
+# Perform k-fold cross-validation
 for fold, (train_index, test_index) in enumerate(kf.split(X_scaled)):
     print(f'Fold {fold + 1}/{n_splits}')
     X_train, X_test = X_scaled[train_index], X_scaled[test_index]
     y_train, y_test = y[train_index], y[test_index]
     
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
     # Create and compile the model
     model = create_model()
     model.compile(optimizer='adam',
@@ -106,13 +113,45 @@ for fold, (train_index, test_index) in enumerate(kf.split(X_scaled)):
                   metrics=['accuracy'])
     
     # Train the model
-    model.fit(X_train, y_train, epochs=10, batch_size=32, verbose=1)
+    history = model.fit(X_train, y_train, epochs=10, batch_size=32, verbose=0, validation_data=(X_val, y_val))
     
     # Evaluate the model
     loss, accuracy = model.evaluate(X_test, y_test)
     print(f'Test Accuracy: {accuracy}')
     accuracy_scores.append(accuracy)
+    
+    # Check if this model has the highest accuracy so far
+    if accuracy > best_accuracy:
+        best_accuracy = accuracy
+        best_history = history
+        best_model = model
 
 # Calculate and print the average accuracy across all folds
 avg_accuracy = np.mean(accuracy_scores)
 print(f'Average Test Accuracy: {avg_accuracy}')
+print(f'Best Test Accuracy: {best_accuracy}')
+
+
+# Plot training history of the best model
+plt.figure(figsize=(12, 6))
+
+# Plot training & validation accuracy values
+plt.subplot(1, 2, 1)
+plt.plot(best_history.history['accuracy'])
+plt.plot(best_history.history['val_accuracy'])
+plt.title('Model Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend(['Train', 'Validation'], loc='upper left')
+
+# Plot training & validation loss values
+plt.subplot(1, 2, 2)
+plt.plot(best_history.history['loss'])
+plt.plot(best_history.history['val_loss'])
+plt.title('Model Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend(['Train', 'Validation'], loc='upper left')
+
+plt.tight_layout()
+plt.show()
