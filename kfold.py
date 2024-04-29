@@ -129,7 +129,6 @@ for fold, (train_index, test_index) in enumerate(kf.split(X_scaled)):
 # Calculate and print the average accuracy across all folds
 avg_accuracy = np.mean(accuracy_scores)
 print(f'Average Test Accuracy: {avg_accuracy}')
-print(f'Best Test Accuracy: {best_accuracy}')
 
 
 # Plot training history of the best model
